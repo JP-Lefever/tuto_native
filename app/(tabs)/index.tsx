@@ -1,9 +1,11 @@
 
 import IconButton from "@/app/components/IconButton";
 import * as ImagePicker from "expo-image-picker";
-import { useState } from "react";
+import * as MediaLibrary from 'expo-media-library';
+import { useRef, useState } from "react";
 import { ImageSourcePropType, StyleSheet, View } from "react-native";
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { captureRef } from "react-native-view-shot";
 import Button from "../components/Button";
 import CircleButton from "../components/CircleButton";
 import EmojiList from "../components/EmojiList";
@@ -18,6 +20,12 @@ export default function Index() {
   const [showAppOptions, setShowAppOptions] = useState<boolean>(false)
   const [isModalVisible, setIsModalVisible] = useState<boolean>(false)
   const [pickedEmoji, setPickEmoji] = useState<ImageSourcePropType | undefined>(undefined)
+  const [status, requestPermission] = MediaLibrary.usePermissions()
+  const imageRef = useRef<View>(null)
+
+  if(status === null){
+    requestPermission()
+  }
   
   const pickImageAsync = async () =>{
     let result = await ImagePicker.launchImageLibraryAsync({
@@ -45,8 +53,19 @@ export default function Index() {
     setIsModalVisible(false)
   }
 
-  const onSaveImageAsync = ()=>{
-
+  const onSaveImageAsync = async ()=>{
+      try {
+        const localUri = await captureRef(imageRef,{
+          height : 440,
+          quality : 1
+        })
+        await MediaLibrary.saveToLibraryAsync(localUri)
+        if (localUri){
+          alert('Saved!')
+        }
+      }catch(e){
+        console.log(e)
+      }
   }
   
 
@@ -56,8 +75,11 @@ export default function Index() {
   return (
     <GestureHandlerRootView style={styles.container}>
       <View style={styles.imageContainer}>
+        <View ref={imageRef} collapsable={false}>
+
         <ImageViewer imgSource={PlaceHolderImage} selectedImage = {selectedImage} />
         {pickedEmoji && <EmojiSticker imageSize={40} stickerSource={pickedEmoji}/>}
+        </View>
       </View>
       {showAppOptions ? (
         <View style={styles.optionsContainer}>
